@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Agregar Múltiples Marcadores por Texto</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <style>
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+    #inputArea {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="inputArea">
+    <textarea id="locations" rows="4" cols="30" placeholder="Ejemplo: CDMX|Ciudad de México\nGDL|Guadalajara"></textarea><br>
+    <button onclick="addMarkers()">Agregar Marcadores</button>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script>
+    // Inicializar el mapa sin botones de zoom
+    var map = L.map('map', {
+      zoomControl: false // Deshabilitar los controles de zoom
+    }).setView([20.6767, -103.3476], 5);
+
+    // Cargar y agregar el mapa base de OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Función para agregar marcadores desde un texto con formato "label|ubicación"
+    function addMarkers() {
+      var locationsText = document.getElementById("locations").value;
+      var locationsArray = locationsText.split('\n'); // Separar cada línea (cada marcador)
+
+      // Procesar cada "label|ubicación" y buscar su ubicación
+      locationsArray.forEach(function(locationPair) {
+        var [label, locationName] = locationPair.split('|'); // Separar label y ubicación con el carácter '|'
+
+        if (label && locationName) {
+          // Hacer la solicitud a Nominatim para obtener las coordenadas de la ubicación
+          fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${locationName}`)
+            .then(response => response.json())
+            .then(data => {
+              if (data.length > 0) {
+                var lat = data[0].lat;
+                var lon = data[0].lon;
+
+                // Agregar marcador en la ubicación
+                L.marker([lat, lon]).addTo(map).bindPopup(label).openPopup();
+
+                // Ajustar la vista del mapa
+                map.setView([lat, lon], 5);
+              } else {
+                console.error("Ubicación no encontrada: " + locationName);
+              }
+            })
+            .catch(error => {
+              console.error('Error al buscar la ubicación:', error);
+            });
+        }
+      });
+
+      // Limpiar el textarea después de agregar los marcadores
+      document.getElementById("locations").value = '';
+    }
+  </script>
+</body>
+</html>
